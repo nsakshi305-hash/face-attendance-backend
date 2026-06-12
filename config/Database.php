@@ -12,20 +12,30 @@ class Database
     
     private function __construct()
     {
-        $host = $_ENV['DB_HOST'] ?? 'localhost';
-        $dbname = $_ENV['DB_NAME'] ?? 'face_attendance';
-        $username = $_ENV['DB_USER'] ?? 'root';
-        $password = $_ENV['DB_PASS'] ?? '';
+        // Get database URL from environment
+        $databaseUrl = getenv('DATABASE_URL');
         
-        try {
-            $this->connection = new PDO(
-                "mysql:host={$host};dbname={$dbname};charset=utf8mb4",
-                $username,
-                $password
-            );
-            $this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        } catch (PDOException $e) {
-            die("Database connection failed: " . $e->getMessage());
+        if ($databaseUrl) {
+            // Parse PostgreSQL connection string
+            $dbopts = parse_url($databaseUrl);
+            $host = $dbopts["host"] ?? 'localhost';
+            $port = $dbopts["port"] ?? '5432';
+            $dbname = ltrim($dbopts["path"], '/');
+            $username = $dbopts["user"] ?? 'root';
+            $password = $dbopts["pass"] ?? '';
+            
+            try {
+                $this->connection = new PDO(
+                    "pgsql:host={$host};port={$port};dbname={$dbname}",
+                    $username,
+                    $password
+                );
+                $this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            } catch (PDOException $e) {
+                die("Database connection failed: " . $e->getMessage());
+            }
+        } else {
+            die("DATABASE_URL environment variable not set");
         }
     }
     
